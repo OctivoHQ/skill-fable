@@ -19,7 +19,7 @@
 :root{
   --void:#070722; --indigo:#12124A; --panel:#171753;
   --violet:#7B2FF7; --flame:#E04AFB; --core:#FFC0F4; --star:#E9E5FF;
-  --seam:#0d0b26; /* CONFIG: replaced with sampled final-frame hex after assembly */
+  --seam:#7d5871; /* sampled from final frame bottom strip (assembly) */
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scrollbar-color:var(--violet) var(--void)}
@@ -353,7 +353,7 @@ footer .soc svg{height:18px;width:18px;fill:var(--star)}
 <script src="vendor/lenis.min.js"></script>
 <script>
 /* ================= CONFIG (finalized after assembly) ================= */
-const FRAME_COUNT = 300;                       // CONFIG:FRAME_COUNT
+const FRAME_COUNT = 301;                       // from assembly: 601 master frames, every 2nd
 const framePath = i => `frames/f${String(i).padStart(4,'0')}.jpg`;
 const CHAPTERS = [
   ['THE VOID',        0.00],
