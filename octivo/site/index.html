@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Octivo Labs — The Fire of Stories</title>
+<meta name="description" content="Octivo Labs builds e-learning, brands and stories people gather around.">
+<style>
+/* ============ FONTS (vendored) ============ */
+@font-face{font-family:'Fraunces';font-weight:400;font-style:normal;font-display:swap;src:url('vendor/fonts/fraunces-latin-400-normal.woff2') format('woff2')}
+@font-face{font-family:'Fraunces';font-weight:600;font-style:normal;font-display:swap;src:url('vendor/fonts/fraunces-latin-600-normal.woff2') format('woff2')}
+@font-face{font-family:'Fraunces';font-weight:600;font-style:italic;font-display:swap;src:url('vendor/fonts/fraunces-latin-600-italic.woff2') format('woff2')}
+@font-face{font-family:'Fraunces';font-weight:900;font-style:normal;font-display:swap;src:url('vendor/fonts/fraunces-latin-900-normal.woff2') format('woff2')}
+@font-face{font-family:'Space Grotesk';font-weight:400;font-style:normal;font-display:swap;src:url('vendor/fonts/space-grotesk-latin-400-normal.woff2') format('woff2')}
+@font-face{font-family:'Space Grotesk';font-weight:500;font-style:normal;font-display:swap;src:url('vendor/fonts/space-grotesk-latin-500-normal.woff2') format('woff2')}
+@font-face{font-family:'Space Grotesk';font-weight:700;font-style:normal;font-display:swap;src:url('vendor/fonts/space-grotesk-latin-700-normal.woff2') format('woff2')}
+
+/* ============ WORLD ============ */
+:root{
+  --void:#070722; --indigo:#12124A; --panel:#171753;
+  --violet:#7B2FF7; --flame:#E04AFB; --core:#FFC0F4; --star:#E9E5FF;
+  --seam:#0d0b26; /* CONFIG: replaced with sampled final-frame hex after assembly */
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scrollbar-color:var(--violet) var(--void)}
+body{background:var(--void);color:var(--star);font-family:'Space Grotesk',system-ui,sans-serif;
+     overflow-x:hidden;-webkit-font-smoothing:antialiased}
+::selection{background:var(--flame);color:var(--void)}
+h1,h2,h3,.serif{font-family:'Fraunces',Georgia,serif}
+a{color:inherit}
+
+/* ============ LOADER ============ */
+#loader{position:fixed;inset:0;z-index:100;background:var(--void);display:flex;flex-direction:column;
+        align-items:center;justify-content:center;gap:28px;transition:opacity .8s ease,visibility .8s}
+#loader.done{opacity:0;visibility:hidden}
+#loader .lmark{width:min(300px,60vw)}
+#loadbar{width:min(300px,60vw);height:1px;background:rgba(233,229,255,.15);position:relative;overflow:visible}
+#loadbar i{position:absolute;left:0;top:0;height:100%;width:0%;background:linear-gradient(90deg,var(--violet),var(--flame));
+           box-shadow:0 0 12px var(--flame);transition:width .2s ease}
+#loadbar b{position:absolute;top:-4.5px;height:10px;width:10px;border-radius:50%;background:var(--core);
+           box-shadow:0 0 14px 3px var(--flame);left:0;transform:translateX(-50%);transition:left .2s ease}
+#loader .lpct{font-size:11px;letter-spacing:.35em;color:rgba(233,229,255,.5)}
+
+/* ============ HEADER ============ */
+header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;
+       padding:22px clamp(20px,4vw,52px);color:var(--star);transition:color .5s ease;pointer-events:none}
+header>*{pointer-events:auto}
+header .logo{display:flex;align-items:center;gap:12px;text-decoration:none}
+header .logo svg{display:block;height:34px;width:auto;color:inherit}
+#readout{display:flex;align-items:center;gap:16px;font-size:11px;letter-spacing:.28em;text-transform:uppercase}
+#readout .chap{opacity:.85;min-width:15ch;text-align:right}
+#readout .alt{font-variant-numeric:tabular-nums;opacity:.6}
+#readout .bar{width:110px;height:1px;background:currentColor;opacity:.25;position:relative}
+#readout .bar i{position:absolute;left:0;top:0;height:100%;background:currentColor;opacity:1;width:0%}
+header .cta{font-size:11px;letter-spacing:.28em;text-transform:uppercase;text-decoration:none;
+            border:1px solid currentColor;padding:10px 18px;border-radius:999px;opacity:.9;transition:opacity .3s}
+header .cta:hover{opacity:1}
+header.on-light{color:#171132}
+@media(max-width:820px){#readout .bar,#readout .alt{display:none}header .cta{display:none}}
+
+/* ============ FILM ============ */
+#film{position:relative;height:850vh}
+#stage{position:sticky;top:0;height:100vh;overflow:hidden;background:var(--void)}
+#screen{position:absolute;inset:0;width:100%;height:100%;display:block}
+#grain,#vig{position:absolute;inset:0;pointer-events:none}
+#vig{background:radial-gradient(ellipse at 50% 55%,transparent 55%,rgba(4,3,18,.55) 100%)}
+#grain{opacity:.07;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E")}
+#ambient{position:absolute;inset:0;pointer-events:none}
+#fade{position:absolute;inset:0;pointer-events:none;opacity:0;
+      background:linear-gradient(180deg,transparent 0%,var(--seam) 78%,var(--seam) 100%)}
+
+/* beats */
+.beat{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      opacity:0;pointer-events:none;padding:0 clamp(20px,6vw,90px)}
+.beat .inner{max-width:820px;text-align:center}
+.beat.left{justify-content:flex-start}
+.beat.left .inner{text-align:left;max-width:560px}
+.beat .kicker{font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--core);
+              text-shadow:0 0 18px rgba(224,74,251,.6);margin-bottom:20px}
+.beat h2{font-size:clamp(34px,5.2vw,68px);font-weight:600;line-height:1.06;letter-spacing:-.01em;
+         text-shadow:0 2px 40px rgba(7,7,34,.8)}
+.beat h2 em{font-style:italic;color:var(--core)}
+.beat p{margin-top:22px;font-size:clamp(15px,1.35vw,18px);line-height:1.65;color:rgba(233,229,255,.82);
+        text-shadow:0 1px 18px rgba(7,7,34,.9)}
+.beat .go{pointer-events:auto;display:inline-block;margin-top:34px;text-decoration:none;
+          font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--void);
+          background:linear-gradient(120deg,var(--core),var(--flame));padding:16px 34px;border-radius:999px;
+          box-shadow:0 0 34px rgba(224,74,251,.45);transition:transform .3s ease,box-shadow .3s ease}
+.beat .go:hover{transform:translateY(-2px);box-shadow:0 0 50px rgba(224,74,251,.65)}
+
+/* hero beat */
+#hero .wordmark{width:min(760px,86vw);margin:0 auto}
+#hero .tag{margin-top:26px;font-family:'Fraunces';font-style:italic;font-weight:600;
+           font-size:clamp(17px,2vw,24px);color:rgba(233,229,255,.9)}
+#hero .hint{margin-top:60px;font-size:10px;letter-spacing:.5em;text-transform:uppercase;color:rgba(233,229,255,.45);
+            animation:sink 2.6s ease-in-out infinite}
+@keyframes sink{0%,100%{transform:translateY(0);opacity:.45}50%{transform:translateY(8px);opacity:.9}}
+
+/* ============ AFTER-FILM ============ */
+#landing{height:46vh;background:linear-gradient(180deg,var(--seam) 0%,var(--void) 100%)}
+section.block{position:relative;padding:clamp(70px,10vw,140px) clamp(24px,7vw,110px);max-width:1380px;margin:0 auto}
+.eyebrow{font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--flame);margin-bottom:18px}
+.block h2.title{font-size:clamp(32px,4.4vw,58px);font-weight:600;line-height:1.08;max-width:14ch}
+.block h2.title em{font-style:italic;color:var(--core)}
+.lede{margin-top:22px;max-width:52ch;color:rgba(233,229,255,.75);line-height:1.7;font-size:clamp(15px,1.3vw,18px)}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:22px;margin-top:64px}
+.card{background:linear-gradient(165deg,var(--panel),rgba(23,23,83,.35));border:1px solid rgba(123,47,247,.25);
+      border-radius:20px;padding:38px 32px 42px;transition:transform .4s ease,border-color .4s ease}
+.card:hover{transform:translateY(-6px);border-color:rgba(224,74,251,.5)}
+.card svg{height:44px;width:44px;color:var(--flame);margin-bottom:26px}
+.card h3{font-size:24px;font-weight:600;margin-bottom:14px}
+.card p{color:rgba(233,229,255,.7);line-height:1.65;font-size:15px}
+
+.work{margin-top:70px;border-top:1px solid rgba(123,47,247,.22)}
+.row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:baseline;padding:34px 6px;
+     border-bottom:1px solid rgba(123,47,247,.22);text-decoration:none;transition:background .3s,padding-left .3s}
+.row:hover{background:rgba(123,47,247,.07);padding-left:18px}
+.row h3{font-size:clamp(21px,2.6vw,32px);font-weight:600}
+.row h3 em{font-style:italic;color:var(--core)}
+.row .meta{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:rgba(233,229,255,.5)}
+.row p{grid-column:1/-1;color:rgba(233,229,255,.65);max-width:64ch;line-height:1.6;font-size:15px}
+
+#quote{background:linear-gradient(180deg,var(--void),var(--indigo) 55%,var(--void));text-align:center}
+#quote blockquote{font-family:'Fraunces';font-style:italic;font-weight:600;
+  font-size:clamp(26px,3.8vw,50px);line-height:1.25;max-width:22ch;margin:0 auto;color:var(--star)}
+#quote blockquote span{color:var(--core);text-shadow:0 0 30px rgba(224,74,251,.5)}
+#quote figcaption{margin-top:26px;font-size:11px;letter-spacing:.4em;text-transform:uppercase;color:rgba(233,229,255,.5)}
+
+#cta{text-align:center}
+#cta .flamebtn{display:inline-block;margin-top:44px;text-decoration:none;font-size:13px;letter-spacing:.3em;
+  text-transform:uppercase;color:var(--void);background:linear-gradient(120deg,var(--core),var(--flame) 60%,var(--violet));
+  padding:20px 46px;border-radius:999px;box-shadow:0 0 44px rgba(224,74,251,.4);transition:transform .3s,box-shadow .3s}
+#cta .flamebtn:hover{transform:translateY(-3px);box-shadow:0 0 70px rgba(224,74,251,.6)}
+#cta .mail{display:block;margin-top:22px;font-size:13px;letter-spacing:.14em;color:rgba(233,229,255,.55);text-decoration:none}
+
+footer{border-top:1px solid rgba(123,47,247,.22);padding:46px clamp(24px,7vw,110px);
+       display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+footer .fmark svg{height:26px;color:var(--star);opacity:.9}
+footer .fine{font-size:11px;letter-spacing:.2em;color:rgba(233,229,255,.4)}
+footer .soc{display:flex;gap:18px}
+footer .soc a{opacity:.55;transition:opacity .3s}
+footer .soc a:hover{opacity:1}
+footer .soc svg{height:18px;width:18px;fill:var(--star)}
+
+/* ============ REDUCED MOTION ============ */
+@media (prefers-reduced-motion: reduce){
+  #film{height:100vh}
+  .beat{display:none}
+  .beat#hero{display:flex;opacity:1 !important}
+  #hero .hint{animation:none;display:none}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader" aria-hidden="true">
+  <div class="lmark">
+    <svg viewBox="0 0 560 120" fill="none" aria-label="Octivo Labs">
+      <text x="50%" y="76" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-weight="900"
+            font-size="72" fill="#E9E5FF" letter-spacing="4">OCTIVO</text>
+      <ellipse cx="392" cy="52" rx="46" ry="15" stroke="#E04AFB" stroke-width="2" fill="none"
+               transform="rotate(-18 392 52)" opacity=".9"/>
+      <path d="M352 30 l3.2 7.6 7.6 3.2 -7.6 3.2 -3.2 7.6 -3.2-7.6 -7.6-3.2 7.6-3.2z" fill="#FFC0F4"/>
+      <text x="50%" y="108" text-anchor="middle" font-family="'Space Grotesk',sans-serif" font-weight="500"
+            font-size="17" fill="#E9E5FF" letter-spacing="18" opacity=".65">LABS</text>
+    </svg>
+  </div>
+  <div id="loadbar"><i></i><b></b></div>
+  <div class="lpct">GATHERING&nbsp;LIGHT&nbsp;·&nbsp;<span id="lpct">0%</span></div>
+</div>
+
+<!-- HEADER -->
+<header id="hdr">
+  <a class="logo" href="#" aria-label="Octivo Labs — home">
+    <svg viewBox="0 0 300 64" fill="none">
+      <text x="0" y="40" font-family="Fraunces,Georgia,serif" font-weight="900" font-size="38"
+            fill="currentColor" letter-spacing="2">OCTIVO</text>
+      <ellipse cx="178" cy="27" rx="26" ry="8.6" stroke="currentColor" stroke-width="1.6" fill="none"
+               transform="rotate(-18 178 27)" opacity=".85"/>
+      <path d="M156 14.5 l2 4.7 4.7 2 -4.7 2 -2 4.7 -2-4.7 -4.7-2 4.7-2z" fill="currentColor"/>
+      <text x="1" y="57" font-family="'Space Grotesk',sans-serif" font-weight="500" font-size="11"
+            fill="currentColor" letter-spacing="10" opacity=".6">LABS</text>
+    </svg>
+  </a>
+  <div id="readout" aria-hidden="true">
+    <span class="alt">ALT <span id="alt">428</span> KM</span>
+    <span class="chap" id="chap">THE VOID</span>
+    <span class="bar"><i id="chapbar"></i></span>
+  </div>
+  <a class="cta" href="#cta">Start your story</a>
+</header>
+
+<!-- THE FILM -->
+<div id="film">
+  <div id="stage">
+    <canvas id="screen"></canvas>
+    <canvas id="ambient"></canvas>
+    <div id="vig"></div><div id="grain"></div><div id="fade"></div>
+
+    <div class="beat" id="hero" data-in="-0.1" data-peak="0" data-out="0.085">
+      <div class="inner">
+        <div class="wordmark">
+          <svg viewBox="0 0 560 132" fill="none" role="img" aria-label="Octivo Labs">
+            <text x="50%" y="80" text-anchor="middle" font-family="Fraunces,Georgia,serif" font-weight="900"
+                  font-size="86" fill="#E9E5FF" letter-spacing="3">OCTIVO</text>
+            <ellipse cx="415" cy="50" rx="55" ry="17" stroke="#E04AFB" stroke-width="2.4" fill="none"
+                     transform="rotate(-18 415 50)" opacity=".95"/>
+            <path d="M368 22 l3.8 9 9 3.8 -9 3.8 -3.8 9 -3.8-9 -9-3.8 9-3.8z" fill="#FFC0F4"/>
+            <text x="50%" y="120" text-anchor="middle" font-family="'Space Grotesk',sans-serif" font-weight="500"
+                  font-size="19" fill="#E9E5FF" letter-spacing="22" opacity=".7">LABS</text>
+          </svg>
+        </div>
+        <p class="tag">Stories that teach. Brands that burn bright.</p>
+        <div class="hint">Scroll to begin the descent</div>
+      </div>
+    </div>
+
+    <div class="beat" data-in="0.17" data-peak="0.245" data-out="0.32">
+      <div class="inner">
+        <div class="kicker">Chapter II · Constellations</div>
+        <h2>Knowledge starts <em>scattered.</em></h2>
+        <p>A thousand facts, a thousand cold little stars. Connection is what makes them mean something.</p>
+      </div>
+    </div>
+
+    <div class="beat" data-in="0.37" data-peak="0.445" data-out="0.52">
+      <div class="inner">
+        <div class="kicker">Chapter III · The Veil</div>
+        <h2>Story is <em>gravity.</em></h2>
+        <p>It pulls the scattered through the dark — and warms everything it touches on the way down.</p>
+      </div>
+    </div>
+
+    <div class="beat" data-in="0.56" data-peak="0.635" data-out="0.71">
+      <div class="inner">
+        <div class="kicker">Chapter IV · Crystalfield</div>
+        <h2>Craft gives it <em>shape.</em></h2>
+        <p>Brands, worlds, lessons — structures built to catch the light and hold it.</p>
+      </div>
+    </div>
+
+    <div class="beat left" data-in="0.855" data-peak="0.93" data-out="2">
+      <div class="inner">
+        <div class="kicker">Chapter V · The Gathering</div>
+        <h2>People gather around a story <em>well told.</em></h2>
+        <p>Octivo Labs builds e-learning, brands and stories people warm their hands on.</p>
+        <a class="go" href="#cta">Start your story</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AFTER-FILM -->
+<div id="landing" aria-hidden="true"></div>
+
+<section class="block" id="what">
+  <div class="eyebrow">What we do</div>
+  <h2 class="title">Three crafts, <em>one fire.</em></h2>
+  <p class="lede">We're a studio that treats learning like the story it should have been all along —
+     and brands like the worlds they want to become.</p>
+  <div class="cards">
+    <div class="card">
+      <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="10" cy="36" r="3" fill="currentColor" stroke="none"/><circle cx="24" cy="14" r="3" fill="currentColor" stroke="none"/>
+        <circle cx="38" cy="28" r="3" fill="currentColor" stroke="none"/><path d="M12 34 L22 16 M26 16 L36 26"/>
+      </svg>
+      <h3>E-Learning Worlds</h3>
+      <p>Courses people finish. Curricula built as journeys — with stakes, arcs and places to explore —
+         not slide-tunnels to survive.</p>
+    </div>
+    <div class="card">
+      <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+        <ellipse cx="24" cy="24" rx="19" ry="8" transform="rotate(-20 24 24)"/><circle cx="24" cy="24" r="6"/>
+      </svg>
+      <h3>Brand &amp; Identity</h3>
+      <p>Names, marks, voices and systems with their own gravity — identities coherent enough
+         to hold a universe together.</p>
+    </div>
+    <div class="card">
+      <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M24 6 C30 16 36 20 36 30 a12 12 0 0 1-24 0 C12 20 18 16 24 6z"/>
+        <path d="M24 22 c3 4 6 6 6 10 a6 6 0 0 1-12 0 c0-4 3-6 6-10z" fill="currentColor" stroke="none" opacity=".8"/>
+      </svg>
+      <h3>Story &amp; Film</h3>
+      <p>Narrative design, scripts and cinematic content — the spark that turns information
+         into something people gather around.</p>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="work">
+  <div class="eyebrow">Selected work</div>
+  <h2 class="title">Worlds we've <em>lit.</em></h2>
+  <div class="work">
+    <a class="row" href="#cta">
+      <h3>Orbit Academy — <em>onboarding as exploration</em></h3><span class="meta">E-learning</span>
+      <p>A compliance curriculum rebuilt as a five-planet expedition. Completion rates doubled;
+         nobody asked for the PDF back.</p>
+    </a>
+    <a class="row" href="#cta">
+      <h3>Northlight — <em>a brand with its own weather</em></h3><span class="meta">Brand</span>
+      <p>Identity, voice and a design system for a renewables company — from wordmark to wind-swept
+         motion language.</p>
+    </a>
+    <a class="row" href="#cta">
+      <h3>The Long Now of Care — <em>a story doctors remember</em></h3><span class="meta">Story &amp; film</span>
+      <p>A cinematic learning series for clinicians. Twelve minutes of film doing the work of
+         two hundred slides.</p>
+    </a>
+  </div>
+</section>
+
+<section class="block" id="quote">
+  <figure>
+    <blockquote>“Nobody ever gathered around a <span>bullet point.</span>”</blockquote>
+    <figcaption>The Octivo house rule</figcaption>
+  </figure>
+</section>
+
+<section class="block" id="cta">
+  <div class="eyebrow" style="text-align:center">Begin</div>
+  <h2 class="title" style="margin:0 auto;max-width:16ch;text-align:center">Bring us the spark —
+      <em>we'll build the fire.</em></h2>
+  <a class="flamebtn" href="mailto:hello@octivodigital.com">Start your story</a>
+  <a class="mail" href="mailto:hello@octivodigital.com">hello@octivodigital.com</a>
+</section>
+
+<footer>
+  <div class="fmark">
+    <svg viewBox="0 0 300 64" fill="none">
+      <text x="0" y="40" font-family="Fraunces,Georgia,serif" font-weight="900" font-size="38"
+            fill="currentColor" letter-spacing="2">OCTIVO</text>
+      <ellipse cx="178" cy="27" rx="26" ry="8.6" stroke="currentColor" stroke-width="1.6" fill="none"
+               transform="rotate(-18 178 27)" opacity=".85"/>
+      <path d="M156 14.5 l2 4.7 4.7 2 -4.7 2 -2 4.7 -2-4.7 -4.7-2 4.7-2z" fill="currentColor"/>
+      <text x="1" y="57" font-family="'Space Grotesk',sans-serif" font-weight="500" font-size="11"
+            fill="currentColor" letter-spacing="10" opacity=".6">LABS</text>
+    </svg>
+  </div>
+  <div class="fine">© 2026 OCTIVO LABS · MADE OF STORIES</div>
+  <div class="soc">
+    <a href="https://linkedin.com" aria-label="LinkedIn"><svg viewBox="0 0 24 24"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/></svg></a>
+    <a href="https://instagram.com" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.72 3.72 0 0 1-1.38-.9 3.72 3.72 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zm0 1.8c-3.15 0-3.52.01-4.76.07-1.08.05-1.67.23-2.06.38-.52.2-.89.44-1.28.83-.39.39-.63.76-.83 1.28-.15.39-.33.98-.38 2.06-.06 1.24-.07 1.61-.07 4.76s.01 3.52.07 4.76c.05 1.08.23 1.67.38 2.06.2.52.44.89.83 1.28.39.39.76.63 1.28.83.39.15.98.33 2.06.38 1.24.06 1.61.07 4.76.07s3.52-.01 4.76-.07c1.08-.05 1.67-.23 2.06-.38.52-.2.89-.44 1.28-.83.39-.39.63-.76.83-1.28.15-.39.33-.98.38-2.06.06-1.24.07-1.61.07-4.76s-.01-3.52-.07-4.76c-.05-1.08-.23-1.67-.38-2.06-.2-.52-.44-.89-.83-1.28a3.44 3.44 0 0 0-1.28-.83c-.39-.15-.98-.33-2.06-.38-1.24-.06-1.61-.07-4.76-.07zm0 3.06a5.14 5.14 0 1 1 0 10.28 5.14 5.14 0 0 1 0-10.28zm0 8.47a3.33 3.33 0 1 0 0-6.66 3.33 3.33 0 0 0 0 6.66zm6.54-8.68a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0z"/></svg></a>
+    <a href="https://x.com" aria-label="X"><svg viewBox="0 0 24 24"><path d="M18.9 1.15h3.68l-8.04 9.19L24 22.85h-7.41l-5.8-7.58-6.64 7.58H.47l8.6-9.83L0 1.15h7.59l5.24 6.93 6.07-6.93zm-1.29 19.5h2.04L6.49 3.24H4.3l13.31 17.41z"/></svg></a>
+    <a href="https://youtube.com" aria-label="YouTube"><svg viewBox="0 0 24 24"><path d="M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.5A3.02 3.02 0 0 0 .5 6.19C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.88.5 9.38.5 9.38.5s7.5 0 9.38-.5a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z"/></svg></a>
+  </div>
+</footer>
+
+<script src="vendor/lenis.min.js"></script>
+<script>
+/* ================= CONFIG (finalized after assembly) ================= */
+const FRAME_COUNT = 300;                       // CONFIG:FRAME_COUNT
+const framePath = i => `frames/f${String(i).padStart(4,'0')}.jpg`;
+const CHAPTERS = [
+  ['THE VOID',        0.00],
+  ['CONSTELLATIONS',  0.20],
+  ['THE VEIL',        0.40],
+  ['CRYSTALFIELD',    0.60],
+  ['THE GATHERING',   0.80],
+];
+
+/* ================= DEV CONTRACT ================= */
+const JUMP = new URLSearchParams(location.search).get('jump');
+if (JUMP !== null) history.scrollRestoration = 'manual';
+window.__ready = false;
+
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ================= SMOOTH SCROLL ================= */
+let lenis = null;
+if (!reduced && JUMP === null && window.Lenis){
+  lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
+  const raf = t => { lenis.raf(t); requestAnimationFrame(raf); };
+  requestAnimationFrame(raf);
+}
+
+/* ================= CANVAS ================= */
+const cv = document.getElementById('screen'), cx = cv.getContext('2d');
+const DPR = Math.min(devicePixelRatio || 1, 1.5);
+function sizeCanvas(){
+  cv.width = Math.round(innerWidth * DPR); cv.height = Math.round(innerHeight * DPR);
+}
+sizeCanvas();
+
+/* ================= FRAME LOADING (pump) ================= */
+const images = new Array(FRAME_COUNT).fill(null);
+let loaded = 0;
+const bar = document.querySelector('#loadbar i'), dot = document.querySelector('#loadbar b'),
+      pct = document.getElementById('lpct'), loaderEl = document.getElementById('loader');
+function pump(concurrency = 10){
+  let next = 0; const need = FRAME_COUNT;
+  return new Promise(res => {
+    const kick = () => {
+      if (next >= need) return;
+      const i = next++;
+      const im = new Image();
+      im.onload = im.onerror = () => {
+        if (im.complete && im.naturalWidth) images[i] = im;
+        loaded++;
+        const p = Math.round(loaded / need * 100);
+        bar.style.width = p + '%'; dot.style.left = p + '%'; pct.textContent = p + '%';
+        if (loaded >= need) res(); else kick();
+      };
+      im.src = framePath(i);
+    };
+    for (let k = 0; k < concurrency; k++) kick();
+  });
+}
+function nearestFrame(i){
+  if (images[i]) return images[i];
+  for (let d = 1; d < FRAME_COUNT; d++){
+    if (images[i-d]) return images[i-d];
+    if (images[i+d]) return images[i+d];
+  }
+  return null;
+}
+
+/* ================= IMAGEBITMAP SLIDING WINDOW (anti-jank core) ================= */
+const bitmaps = new Map(), decoding = new Set();
+const B_AHEAD = 18, B_KEEP = 28; let bmpCenter = -999;
+let displayed = -1;
+function ensureBitmaps(center){
+  if (Math.abs(center - bmpCenter) < 3) return;
+  bmpCenter = center;
+  const lo = Math.max(0, center - B_AHEAD), hi = Math.min(FRAME_COUNT - 1, center + B_AHEAD);
+  for (let i = lo; i <= hi; i++){
+    if (bitmaps.has(i) || decoding.has(i) || !images[i]) continue;
+    decoding.add(i);
+    createImageBitmap(images[i]).then(b => {
+      decoding.delete(i);
+      if (Math.abs(i - bmpCenter) > B_KEEP){ b.close(); return; }
+      bitmaps.set(i, b);
+      if (i === displayed) drawFrame(i, true);
+    }).catch(() => decoding.delete(i));
+  }
+  for (const k of Array.from(bitmaps.keys()))
+    if (k < center - B_KEEP || k > center + B_KEEP){ bitmaps.get(k).close(); bitmaps.delete(k); }
+}
+function drawFrame(idx, force = false){
+  if (idx === displayed && !force) return;
+  const src = bitmaps.get(idx) || nearestFrame(idx);
+  if (!src) return;
+  displayed = idx;
+  const iw = src.width, ih = src.height, cw = cv.width, ch = cv.height;
+  const s = Math.max(cw / iw, ch / ih), dw = iw * s, dh = ih * s;
+  cx.drawImage(src, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+}
+
+/* ================= SCROLL → FILM PROGRESS ================= */
+const film = document.getElementById('film');
+let progress = 0, targetFrame = 0, currentFrame = 0;
+function computeProgress(){
+  const r = film.getBoundingClientRect();
+  progress = Math.max(0, Math.min(1, -r.top / (r.height - innerHeight)));
+  targetFrame = progress * (FRAME_COUNT - 1);
+}
+
+/* ================= BEATS ================= */
+const beats = Array.from(document.querySelectorAll('.beat')).map(el => ({
+  el, in: +el.dataset.in, peak: +el.dataset.peak, out: +el.dataset.out, shown: -1
+}));
+function beatAlpha(b, p){
+  if (p < b.in || p > b.out) return 0;
+  if (p < b.peak) return (p - b.in) / Math.max(1e-4, b.peak - b.in);
+  if (b.out > 1.5) return 1;
+  return 1 - (p - b.peak) / Math.max(1e-4, b.out - b.peak);
+}
+function updateBeats(p){
+  for (const b of beats){
+    const a = beatAlpha(b, p);
+    if (a === b.shown) continue;
+    b.shown = a;
+    b.el.style.opacity = a.toFixed(3);
+    const dir = p < b.peak ? 1 : -1;
+    b.el.style.transform = `translateY(${((1 - a) * 26 * dir).toFixed(1)}px)`;
+    b.el.style.pointerEvents = (a > 0.6 && b.out > 1.5) ? 'auto' : 'none';
+  }
+}
+
+/* ================= HEADER: readout + adaptive luminance ================= */
+const hdr = document.getElementById('hdr'), chapEl = document.getElementById('chap'),
+      chapBar = document.getElementById('chapbar'), altEl = document.getElementById('alt');
+function updateReadout(p){
+  let ci = 0;
+  for (let i = 0; i < CHAPTERS.length; i++) if (p >= CHAPTERS[i][1]) ci = i;
+  if (chapEl.textContent !== CHAPTERS[ci][0]) chapEl.textContent = CHAPTERS[ci][0];
+  const start = CHAPTERS[ci][1], end = ci + 1 < CHAPTERS.length ? CHAPTERS[ci + 1][1] : 1;
+  chapBar.style.width = Math.round((p - start) / (end - start) * 100) + '%';
+  altEl.textContent = Math.max(0, Math.round(428 * (1 - p)));
+}
+const lumCv = document.createElement('canvas'); lumCv.width = 16; lumCv.height = 4;
+const lumCx = lumCv.getContext('2d', { willReadFrequently: true });
+let lastLum = 0;
+function sampleHeader(now){
+  if (now - lastLum < 180 || displayed < 0) return;
+  lastLum = now;
+  try{
+    lumCx.drawImage(cv, 0, 0, cv.width, Math.max(1, cv.height * 0.12), 0, 0, 16, 4);
+    const d = lumCx.getImageData(0, 0, 16, 4).data;
+    let L = 0;
+    for (let i = 0; i < d.length; i += 4) L += 0.2126 * d[i] + 0.7152 * d[i+1] + 0.0722 * d[i+2];
+    hdr.classList.toggle('on-light', (L / (d.length / 4)) > 138);
+  }catch(e){}
+}
+
+/* ================= SEAM FADE ================= */
+const fadeEl = document.getElementById('fade'), grainEl = document.getElementById('grain'),
+      vigEl = document.getElementById('vig');
+function updateFade(p){
+  const f = Math.max(0, Math.min(1, (p - 0.92) / 0.08));
+  fadeEl.style.opacity = f.toFixed(3);
+  grainEl.style.opacity = (0.07 * (1 - f)).toFixed(3);
+  vigEl.style.opacity = (1 - f).toFixed(3);
+}
+
+/* ================= AMBIENT LAYER (star glisten over the hero) ================= */
+const amb = document.getElementById('ambient'), ambx = amb.getContext('2d');
+let sprite = null, parts = [];
+function initAmbient(){
+  amb.width = cv.width; amb.height = cv.height;
+  const s = document.createElement('canvas'); s.width = s.height = 32;
+  const g = s.getContext('2d').createRadialGradient(16, 16, 0, 16, 16, 16);
+  g.addColorStop(0, 'rgba(233,229,255,1)'); g.addColorStop(0.4, 'rgba(200,180,255,.5)');
+  g.addColorStop(1, 'rgba(200,180,255,0)');
+  const sc = s.getContext('2d'); sc.fillStyle = g; sc.fillRect(0, 0, 32, 32);
+  sprite = s;
+  parts = Array.from({length: 70}, () => ({
+    x: Math.random(), y: Math.random(), z: 0.3 + Math.random() * 0.7,
+    tw: Math.random() * Math.PI * 2, sp: 0.15 + Math.random() * 0.55
+  }));
+}
+function drawAmbient(now, p){
+  if (reduced || !sprite) return;
+  const a = Math.max(0, 1 - p / 0.07);
+  if (a <= 0){ if (amb.style.display !== 'none'){ ambx.clearRect(0,0,amb.width,amb.height); amb.style.display = 'none'; } return; }
+  amb.style.display = 'block';
+  ambx.clearRect(0, 0, amb.width, amb.height);
+  ambx.globalCompositeOperation = 'lighter';
+  for (const pt of parts){
+    const tw = 0.5 + 0.5 * Math.sin(now * 0.001 * pt.sp * 3 + pt.tw);
+    const sz = 3 + pt.z * 9;
+    ambx.globalAlpha = a * tw * pt.z * 0.85;
+    ambx.drawImage(sprite, pt.x * amb.width - sz/2, (pt.y * amb.height + now * 0.004 * pt.sp * pt.z) % amb.height - sz/2, sz, sz);
+  }
+  ambx.globalAlpha = 1; ambx.globalCompositeOperation = 'source-over';
+}
+
+/* ================= JANK METER ================= */
+let lastT = 0, deltas = [];
+window.__jank = { max: 0, p95: 0 };
+setInterval(() => {
+  if (!deltas.length) return;
+  deltas.sort((a, b) => a - b);
+  window.__jank = { max: Math.round(deltas[deltas.length-1]), p95: Math.round(deltas[Math.floor(deltas.length * .95)]) };
+  console.log('[jank] max', window.__jank.max + 'ms', 'p95', window.__jank.p95 + 'ms');
+  deltas = [];
+}, 2000);
+
+/* ================= MAIN TICK ================= */
+function tick(now){
+  if (lastT) deltas.push(now - lastT); lastT = now;
+  computeProgress();
+  currentFrame += (targetFrame - currentFrame) * 0.10;
+  if (Math.abs(targetFrame - currentFrame) < 0.4) currentFrame = targetFrame;
+  const idx = Math.round(currentFrame);
+  ensureBitmaps(idx);
+  drawFrame(idx);
+  updateBeats(progress);
+  updateReadout(progress);
+  updateFade(progress);
+  sampleHeader(now);
+  drawAmbient(now, progress);
+  requestAnimationFrame(tick);
+}
+
+/* ================= BOOT ================= */
+addEventListener('resize', () => { sizeCanvas(); amb.width = cv.width; amb.height = cv.height; displayed = -1; drawFrame(Math.round(currentFrame), true); });
+
+(async function boot(){
+  if (reduced){
+    // Static poster: first frame + hero, no film scrub.
+    const im = new Image();
+    await new Promise(r => { im.onload = im.onerror = r; im.src = framePath(0); });
+    if (im.naturalWidth){ images[0] = im; drawFrame(0, true); }
+    loaderEl.classList.add('done');
+    document.getElementById('hero').style.opacity = 1;
+    window.__ready = true;
+    return;
+  }
+  await pump();
+  initAmbient();
+  // pre-warm decode around frame 0
+  ensureBitmaps(0);
+  await new Promise(r => setTimeout(r, 120));
+  computeProgress();
+  currentFrame = targetFrame;
+  drawFrame(Math.round(currentFrame), true);
+  loaderEl.classList.add('done');
+  requestAnimationFrame(tick);
+  if (JUMP !== null){
+    scrollTo(0, +JUMP || 0);
+    await new Promise(r => setTimeout(r, 60));
+    computeProgress(); currentFrame = targetFrame;
+    ensureBitmaps(Math.round(currentFrame));
+    await new Promise(r => setTimeout(r, 250));
+    drawFrame(Math.round(currentFrame), true);
+    updateBeats(progress); updateReadout(progress); updateFade(progress);
+  }
+  window.__ready = true;
+})();
+</script>
+</body>
+</html>
