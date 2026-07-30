@@ -4,7 +4,7 @@
 // window.__ready, window.__jank.
 const {chromium}=require('playwright');
 (async()=>{
-const b=await chromium.launch();
+const b=await chromium.launch(process.env.PW_EXE?{executablePath:process.env.PW_EXE}:{});
 const pg=await b.newPage({viewport:{width:1440,height:900}});
 const base='http://127.0.0.1:8788/';
 async function load(u){await pg.goto(u,{waitUntil:'load'});await pg.waitForFunction('window.__ready===true',null,{timeout:90000});}

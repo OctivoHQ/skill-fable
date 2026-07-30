@@ -20,6 +20,12 @@ done
 grep -q "FRAME_COUNT" site/index.html || { echo FATAL_BAD_HTML; exit 1; }
 echo "FETCHED:$(du -sk site | cut -f1)K"
 
+# Fast path: reuse frames.zip from a prior run if it is already on the CDN.
+if [ -n "$FRAMES_GET" ] && curl -sfSL -o frames.zip "$FRAMES_GET"; then
+  unzip -qo frames.zip -d site
+  echo "FRAME_COUNT:$(ls site/frames | wc -l) (from CDN)"
+else
+
 CLIPS="https://d8j0ntlcm91z4.cloudfront.net/user_3DcoKKJzH3SBkPcfmcDa4zGDmFc/hf_20260729_160844_f2828048-2549-44b1-839e-3897de8f7321.mp4 https://d8j0ntlcm91z4.cloudfront.net/user_3DcoKKJzH3SBkPcfmcDa4zGDmFc/hf_20260729_162216_969aae85-d891-432f-89b7-8667bec17136.mp4 https://d8j0ntlcm91z4.cloudfront.net/user_3DcoKKJzH3SBkPcfmcDa4zGDmFc/hf_20260729_163459_dfdba4a0-5b19-45b5-9a77-edee60948ec0.mp4 https://d8j0ntlcm91z4.cloudfront.net/user_3DcoKKJzH3SBkPcfmcDa4zGDmFc/hf_20260729_164922_259d8fd4-f40c-4e23-9d4a-c40d2f723c73.mp4 https://d8j0ntlcm91z4.cloudfront.net/user_3DcoKKJzH3SBkPcfmcDa4zGDmFc/hf_20260729_170218_09c47069-1578-4314-a708-cb8a70116a7b.mp4"
 i=0; INPUTS=(); FILTER=""
 for u in $CLIPS; do
@@ -42,10 +48,14 @@ echo "FRAME_COUNT:$(ls site/frames | wc -l)"
 if [ -n "$FRAMES_PUT" ]; then
   curl -sS -o /dev/null -w "PUT_FRAMES:%{http_code}\n" -X PUT -H "Content-Type: application/zip" --data-binary @frames.zip "$FRAMES_PUT"
 fi
+fi
 
 (cd site && nohup python3 -m http.server 8788 >/dev/null 2>&1 &)
 sleep 1
 export NODE_PATH=$(npm root -g 2>/dev/null)
+export PLAYWRIGHT_BROWSERS_PATH=${PLAYWRIGHT_BROWSERS_PATH:-/ms-playwright}
+export PW_EXE=$(ls -d "$PLAYWRIGHT_BROWSERS_PATH"/chromium-*/chrome-linux64/chrome 2>/dev/null | head -1)
+echo "PW_EXE:$PW_EXE"
 node cap.js
 echo CAPS_DONE
 montage $(ls shots/*.jpg | head -10) -tile 2x5 -geometry 500x313+5+5 -background '#070722' -quality 74 sheets/film.jpg || echo MONTAGE1_FAIL
